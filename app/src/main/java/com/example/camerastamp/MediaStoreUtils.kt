@@ -53,40 +53,6 @@ object MediaStoreUtils {
         }
     }
 
-    /** Copies an already-stamped JPEG file into Pictures/GeoTagCamera and returns the saved media, or null on failure. */
-    fun saveJpegFile(context: Context, sourceFile: File, fileName: String): SavedMedia? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val resolver = context.contentResolver
-                val values = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/$FOLDER_NAME")
-                    put(MediaStore.Images.Media.IS_PENDING, 1)
-                }
-                val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return null
-                resolver.openOutputStream(uri)?.use { out ->
-                    sourceFile.inputStream().use { input -> input.copyTo(out) }
-                } ?: return null
-                values.clear()
-                values.put(MediaStore.Images.Media.IS_PENDING, 0)
-                resolver.update(uri, values, null, null)
-                SavedMedia(uri, fileName)
-            } else {
-                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val appDir = File(picturesDir, FOLDER_NAME)
-                if (!appDir.exists()) appDir.mkdirs()
-                val dest = File(appDir, fileName)
-                sourceFile.inputStream().use { input ->
-                    FileOutputStream(dest).use { out -> input.copyTo(out) }
-                }
-                SavedMedia(fileProviderUri(context, dest), fileName)
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
     /** Saves [bitmap] as a JPEG in Pictures/GeoTagCamera and returns the saved media, or null on failure. */
     fun saveJpeg(context: Context, bitmap: Bitmap, fileName: String): SavedMedia? {
         return try {

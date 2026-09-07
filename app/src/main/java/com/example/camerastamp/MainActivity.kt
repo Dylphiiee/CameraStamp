@@ -32,7 +32,6 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import com.example.camerastamp.databinding.ActivityMainBinding
 import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -291,38 +290,17 @@ class MainActivity : AppCompatActivity() {
                     logo = logoBitmap
                 )
 
-                // Save the raw (un-stamped) capture to a temp file, then let FFmpeg
-                // composite the stamp onto it (same overlay approach used for video).
-                val rawFile = File(cacheDir, "raw_photo_${System.currentTimeMillis()}.jpg")
-                FileOutputStream(rawFile).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it) }
-
-                val result = PhotoStampProcessor.process(this@MainActivity, rawFile, stampData)
-                rawFile.delete()
-
-                if (result.outputFile == null) {
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, R.string.failed_toast, Toast.LENGTH_SHORT).show()
-                    }
-                    return
-                }
-
+                val stamped = StampRenderer.applyStamp(bitmap, stampData)
                 val fileName = "IMG_${System.currentTimeMillis()}.jpg"
-                val saved = MediaStoreUtils.saveJpegFile(this@MainActivity, result.outputFile, fileName)
+                val saved = MediaStoreUtils.saveJpeg(this@MainActivity, stamped, fileName)
 
-                val thumbBitmap = try {
-                    val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
-                    BitmapFactory.decodeFile(result.outputFile.absolutePath, opts)
-                } catch (e: Exception) {
-                    null
-                }
-
-                result.outputFile.parentFile?.let { PhotoStampProcessor.cleanup(it, null) }
+                val thumbBitmap = Bitmap.createScaledBitmap(stamped, 200, 200 * stamped.height / stamped.width, true)
 
                 runOnUiThread {
                     if (saved != null) {
                         lastPhotoUri = saved.uri
                         lastMediaMime = "image/jpeg"
-                        if (thumbBitmap != null) binding.ivLastPhoto.setImageBitmap(thumbBitmap)
+                        binding.ivLastPhoto.setImageBitmap(thumbBitmap)
                         Toast.makeText(
                             this@MainActivity,
                             getString(R.string.saved_toast, saved.displayName),

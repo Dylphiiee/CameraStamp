@@ -82,34 +82,42 @@ object StampRenderer {
         val maxTextWidth = w - marginX * 2f - 40f * scale
         val locationLines = wrapText(data.locationText, locationFill, maxTextWidth, maxLines = 2)
         val lineSpacing = locationFill.textSize * 1.3f
+        val reservedLocationLines = 2 // always reserve 2 lines' worth of height, even if only 1 is drawn,
+        // so the row above stays at a consistent height whether this call draws the full address
+        // (photo / video's static layer) or an empty location (video's per-second clock layer).
 
         // ---- Layout, bottom-up. Each row uses a fixed line-height gap from the row below it,
         // so rows can never collide regardless of font metrics quirks. ----
 
-        var y = h - 36f * scale
-
+        var lineY = h - 36f * scale
+        var topmostLineBaselineY = lineY
         for (i in locationLines.indices.reversed()) {
-            drawCrispText(canvas, locationLines[i], marginX + 24f * scale, y, locationFill, locationOutline)
-            y -= lineSpacing
+            drawCrispText(canvas, locationLines[i], marginX + 24f * scale, lineY, locationFill, locationOutline)
+            topmostLineBaselineY = lineY
+            lineY -= lineSpacing
         }
 
-        y -= 14f * scale
+        val y = h - 36f * scale - reservedLocationLines * lineSpacing - 14f * scale
 
         val dateDayLineHeight = dayFill.textSize * 1.25f
 
         val dayBaselineY = y
-        drawCrispText(canvas, data.dayText, marginX + 46f * scale, dayBaselineY, dayFill, dayOutline)
-
         val dateBaselineY = dayBaselineY - dateDayLineHeight
-        drawCrispText(canvas, data.dateText, marginX + 46f * scale, dateBaselineY, dayFill, dayOutline)
 
-        // Big time text shares the day line's baseline (to its left, before the divider bar).
-        val timeBaselineY = dayBaselineY
-        drawCrispText(canvas, data.timeText, marginX, timeBaselineY, timeFill, timeOutline)
-
-        // Yellow divider bar between time and date/day
+        // Measure the time text FIRST so the date/day column and divider bar can be
+        // positioned to its right — using a fixed offset here was the bug: a wide time
+        // string (e.g. "08.44") would run straight through the date/day text.
         val timeWidth = timeFill.measureText(data.timeText)
         val barLeft = marginX + timeWidth + 14f * scale
+        val dateDayX = barLeft + 6f * scale + 14f * scale
+
+        drawCrispText(canvas, data.dayText, dateDayX, dayBaselineY, dayFill, dayOutline)
+        drawCrispText(canvas, data.dateText, dateDayX, dateBaselineY, dayFill, dayOutline)
+
+        // Big time text shares the day line's baseline (to its left, before the divider bar).
+        drawCrispText(canvas, data.timeText, marginX, dayBaselineY, timeFill, timeOutline)
+
+        // Yellow divider bar between time and date/day
         val barTop = dateBaselineY - dayFill.textSize
         val barBottom = dayBaselineY + 6f * scale
         val barPaint = Paint().apply { color = yellow }
@@ -119,10 +127,11 @@ object StampRenderer {
         val companyBaselineY = dateBaselineY - dateDayLineHeight
         drawCrispText(canvas, data.companyName, marginX, companyBaselineY, companyFill, companyOutline)
 
-        // Location pin marker (simple drawn dot) to the left of location text
+        // Location pin marker (simple drawn dot), vertically centered against whichever
+        // line actually ended up on top (works whether the address wraps to 1 or 2 lines).
         val pinPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         val pinCenterX = marginX + 8f * scale
-        val pinCenterY = y + lineSpacing - locationFill.textSize * 0.4f
+        val pinCenterY = topmostLineBaselineY - locationFill.textSize * 0.4f
         canvas.drawCircle(pinCenterX, pinCenterY, 8f * scale, pinPaint)
 
         // Logo top-right corner watermark
