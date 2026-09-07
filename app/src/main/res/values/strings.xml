@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GeoTag Camera</string>
+    <string name="company_default">PT JARINGAN LINTAS MARITIM</string>
+    <string name="permission_rationale">Aplikasi memerlukan izin kamera dan lokasi untuk mengambil foto dengan timestamp dan locstamp.</string>
+    <string name="grant_permission">Berikan Izin</string>
+    <string name="getting_location">Mencari lokasi…</string>
+    <string name="saved_toast">Foto tersimpan: %1$s</string>
+    <string name="failed_toast">Gagal mengambil foto</string>
+    <string name="mode_photo">FOTO</string>
+    <string name="mode_video">VIDEO</string>
+    <string name="processing_video">Memproses video, mohon tunggu…</string>
+    <string name="video_saved_toast">Video tersimpan: %1$s</string>
+    <string name="video_failed_toast">Gagal memproses video</string>
+</resources>
